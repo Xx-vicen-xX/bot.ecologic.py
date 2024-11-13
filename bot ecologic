@@ -1,0 +1,94 @@
+import discord
+import random
+
+# Inicializa las intenciones de mensajes y eventos del servidor
+intents = discord.Intents.default()
+intents.message_content = True
+client = discord.Client(intents=intents)
+
+# Variables para los puntos y las actividades del bot
+puntos_usuarios = {}
+desafios = [
+    "Evita el plástico desechable durante 24 horas 🌍",
+    "Usa transporte público o camina en lugar de conducir 🚶‍♂️",
+    "Ahorra agua hoy al reducir el tiempo de ducha 🚿",
+]
+
+trivia_preguntas = {
+    "¿Cuál es la fuente de energía renovable más usada en el mundo?": "hidroeléctrica",
+    "¿Cuántos años tarda en degradarse una botella de plástico?": "450 años",
+    "¿Cuál es el gas de efecto invernadero más abundante?": "dióxido de carbono",
+}
+
+# Evento de conexión
+@client.event
+async def on_ready():
+    print(f'¡EcoBot se conectó como: {client.user}!')
+
+@client.event
+async def on_message(message):
+    if message.author == client.user:
+        return
+
+    # Comando para enviar un enlace de YouTube
+    elif message.content.startswith("!video"):
+        await message.channel.send("Mira este video sobre sostenibilidad: https://www.youtube.com/watch?v=xCaI-5WVRlY")
+
+# Evento de bienvenida para nuevos miembros
+@client.event
+async def on_member_join(member):
+    channel = discord.utils.get(member.guild.text_channels, name="general")
+    if channel:
+        await channel.send(f"¡Bienvenido/a {member.mention}! 🌱 EcoBot te invita a cuidar el planeta con nosotros.")
+
+# Evento de mensaje para procesar comandos
+@client.event
+async def on_message(message):
+    if message.author == client.user:
+        return
+
+    # Comando de saludo
+    elif message.content.startswith('hola'):
+        await message.channel.send("¡Hola eco-amigo! 🌍")
+
+    # Comando de despedida
+    elif message.content.startswith('chau'):
+        await message.channel.send("¡Nos vemos! Cuida el planeta 🌱")
+
+    # Comando de desafío diario
+    elif message.content.startswith("desafio"):
+        desafio = random.choice(desafios)
+        user = message.author.name
+        await message.channel.send(f"🌍 Desafío para {user}: {desafio}")
+        puntos_usuarios[user] = puntos_usuarios.get(user, 0) + 10
+        await message.channel.send(f"¡Ganaste 10 puntos! Ahora tienes {puntos_usuarios[user]} puntos.")
+
+    # Comando de trivia ambiental
+    elif message.content.startswith("trivia"):
+        pregunta, respuesta = random.choice(list(trivia_preguntas.items()))
+        await message.channel.send(f"🧠 Trivia: {pregunta}")
+
+        def check(m):
+            return m.author == message.author and m.channel == message.channel
+
+        try:
+            msg = await client.wait_for('message', check=check, timeout=15.0)
+        except:
+            await message.channel.send("⏰ ¡Tiempo agotado!")
+            return
+
+        if msg.content.lower() == respuesta.lower():
+            await message.channel.send("✅ ¡Correcto! Ganaste 5 puntos.")
+            puntos_usuarios[msg.author.name] = puntos_usuarios.get(msg.author.name, 0) + 5
+        else:
+            await message.channel.send(f"❌ Incorrecto. La respuesta era: {respuesta}")
+        
+        await message.channel.send(f"Tienes {puntos_usuarios[msg.author.name]} puntos.")
+
+    # Comando para consultar puntos
+    elif message.content.startswith("puntos"):
+        user = message.author.name
+        puntos = puntos_usuarios.get(user, 0)
+        await message.channel.send(f"🌟 {user}, tienes {puntos} puntos de sostenibilidad.")
+
+client.run("token")
